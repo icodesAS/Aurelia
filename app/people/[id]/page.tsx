@@ -16,11 +16,15 @@ import {
   MessageCircle,
   Shield,
   Compass,
+  Home,
+  ArrowRight,
 } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { seedUsers, seedListings } from "@/lib/seed";
 import { scoreMatch } from "@/lib/match";
 import { DEFAULT_QUIZ_ANSWERS } from "@/lib/quiz";
+import { createHouseholdDoc } from "@/lib/store";
+import { HouseholdMember, Chore } from "@/lib/types";
 import { matchExplainFallback, MatchExplanation } from "@/lib/ai/fallbacks";
 import Orb from "@/components/ui/Orb";
 import LoadingLine from "@/components/ui/LoadingLine";
@@ -29,7 +33,8 @@ export default function MatchRevealPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const prefersReducedMotion = useReducedMotion();
-  const { profile } = useAuth();
+  const { user, profile, signInGuest } = useAuth();
+  const [formingHousehold, setFormingHousehold] = useState(false);
 
   const person = useMemo(
     () => seedUsers.find((u) => u.id === params.id) ?? seedUsers[0],
@@ -51,6 +56,95 @@ export default function MatchRevealPage() {
   const [explanation, setExplanation] = useState<MatchExplanation | null>(null);
   const [source, setSource] = useState<"gemini" | "fallback">("fallback");
   const [loadingAi, setLoadingAi] = useState(true);
+
+
+  const handleFormHousehold = async () => {
+    setFormingHousehold(true);
+    let activeUid = user?.uid || profile?.uid;
+    if (!activeUid) {
+      const guestProf = await signInGuest(true);
+      activeUid = guestProf?.uid || "guest-demo-user";
+    }
+
+    const youName = profile?.displayName || "You";
+
+    const members: HouseholdMember[] = [
+      {
+        id: activeUid,
+        name: youName,
+        hue: 40,
+        areaSqft: 150,
+        attachedBath: true,
+        balcony: false,
+        ac: false,
+      },
+      {
+        id: person.id,
+        name: person.displayName,
+        hue: person.hue,
+        areaSqft: 135,
+        attachedBath: false,
+        balcony: true,
+        ac: false,
+      },
+    ];
+
+    const rentPerPerson = person.numericTraits?.budget || 12000;
+    const totalRent = rentPerPerson * 2;
+
+    const starterChores: Chore[] = [
+      {
+        id: "c1",
+        title: "Kitchen wipe-down & dish rack",
+        assignedTo: members[0].id,
+        frequency: "daily",
+        done: false,
+      },
+      {
+        id: "c2",
+        title: "Trash & recycling disposal",
+        assignedTo: members[1].id,
+        frequency: "daily",
+        done: false,
+      },
+      {
+        id: "c3",
+        title: "Shared supplies & groceries run",
+        assignedTo: members[0].id,
+        frequency: "weekly",
+        done: false,
+      },
+      {
+        id: "c4",
+        title: "Common area vacuuming",
+        assignedTo: members[1].id,
+        frequency: "weekly",
+        done: false,
+      },
+    ];
+
+    await createHouseholdDoc({
+      ownerUid: activeUid,
+      listingId: personListing?.id,
+      name: `${youName} & ${person.displayName.split(" ")[0]}'s Home`,
+      totalRent,
+      members,
+      expenses: [
+        {
+          id: `exp_${Date.now()}_1`,
+          title: "High-Speed Wi-Fi Setup",
+          amount: 2400,
+          paidBy: members[0].id,
+          splitBetween: members.map((m) => m.id),
+          createdAt: Date.now(),
+        },
+      ],
+      chores: starterChores,
+      createdAt: Date.now(),
+    });
+
+    router.push("/home");
+  };
 
   const personListing = useMemo(
     () => seedListings.find((l) => l.residentIds.includes(person.id)) ?? null,
@@ -441,7 +535,51 @@ export default function MatchRevealPage() {
             })}
           </div>
         </div>
+
+        {/* STAGE 4: ACTION CARD - FINALIZE ROOMMATE & LAUNCH HOUSEHOLD */}
+        <div className="rounded-[24px] border border-[var(--gold)]/35 bg-gradient-to-br from-[var(--surface)] via-[var(--surface)] to-[var(--gold)]/10 p-6 md:p-8">
+          <div className="flex flex-col justify-between gap-6 md:flex-row md:items-center">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-[0.2em] text-[var(--gold-soft)]">
+                MUTUAL LIVING CONSENSUS
+              </p>
+              <h3 className="font-serif-display mt-2 text-3xl text-[var(--cream)]">
+                Ready to live with {person.displayName.split(" ")[0]}?
+              </h3>
+              <p className="mt-2 max-w-xl text-sm leading-relaxed text-[var(--muted)]">
+                Finalizing will create your shared household in <span className="text-[var(--cream)] font-medium">My Home</span>, auto-split your rent mathematically using the Largest-Remainder method, and generate a day-one chore rotation based on your compatibility profile.
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+              {personListing && (
+                <Link
+                  href={`/explore/${personListing.id}`}
+                  className="inline-flex items-center justify-center gap-2 rounded-[14px] border border-white/10 bg-white/5 px-5 py-3.5 text-xs font-medium text-[var(--cream)] transition-all hover:bg-white/10"
+                >
+                  <Home className="h-4 w-4 text-[var(--gold-soft)]" />
+                  <span>View {person.displayName.split(" ")[0]}&apos;s Flat</span>
+                </Link>
+              )}
+              <button
+                type="button"
+                disabled={formingHousehold}
+                onClick={handleFormHousehold}
+                className="inline-flex items-center justify-center gap-2.5 rounded-[14px] bg-[var(--gold)] px-6 py-3.5 text-xs font-medium text-[#0A0A0B] transition-all hover:-translate-y-0.5 hover:bg-[var(--gold-soft)] active:scale-[0.98] disabled:opacity-60 shadow-[0_0_32px_rgba(201,169,110,0.3)]"
+              >
+                <Sparkles className="h-4 w-4" />
+                <span>
+                  {formingHousehold
+                    ? "Setting up your home…"
+                    : `Finalize & Move In with ${person.displayName.split(" ")[0]}`}
+                </span>
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </div>
       </motion.div>
     </div>
   );
 }
+
