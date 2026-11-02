@@ -1,0 +1,204 @@
+{
+  "entities": {
+    "Profile": {
+      "title": "Profile",
+      "description": "User lifestyle profile and roommate matching answers",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "occupation": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "city": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "budgetMin": {
+          "type": "number"
+        },
+        "budgetMax": {
+          "type": "number"
+        },
+        "intent": {
+          "type": "string",
+          "enum": ["find", "host", "both"]
+        },
+        "createdAt": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "uid",
+        "displayName",
+        "occupation",
+        "city",
+        "budgetMin",
+        "budgetMax",
+        "intent",
+        "answers",
+        "createdAt"
+      ]
+    },
+    "Listing": {
+      "title": "Listing",
+      "description": "Shared living or rental room listing",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "tagline": {
+          "type": "string",
+          "maxLength": 140
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 1200
+        },
+        "city": {
+          "type": "string",
+          "maxLength": 60
+        },
+        "area": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "roomType": {
+          "type": "string",
+          "enum": ["private_room", "shared_room", "entire_flat"]
+        },
+        "bhk": {
+          "type": "number"
+        },
+        "furnished": {
+          "type": "boolean"
+        },
+        "askingRent": {
+          "type": "number"
+        },
+        "foodRule": {
+          "type": "string",
+          "enum": ["veg_only", "any"]
+        },
+        "vibe": {
+          "type": "string",
+          "enum": ["quiet", "balanced", "lively"]
+        },
+        "suitableFor": {
+          "type": "string",
+          "enum": ["any", "women_only", "men_only"]
+        },
+        "gradientSeed": {
+          "type": "number"
+        },
+        "source": {
+          "type": "string",
+          "enum": ["seed", "user"]
+        },
+        "createdAt": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "ownerId",
+        "ownerName",
+        "title",
+        "tagline",
+        "description",
+        "city",
+        "area",
+        "roomType",
+        "bhk",
+        "furnished",
+        "askingRent",
+        "foodRule",
+        "vibe",
+        "suitableFor",
+        "gradientSeed",
+        "source",
+        "createdAt"
+      ]
+    },
+    "Household": {
+      "title": "Household",
+      "description": "Shared living household with rent splits, expenses, and chores",
+      "type": "object",
+      "properties": {
+        "ownerUid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "totalRent": {
+          "type": "number"
+        },
+        "createdAt": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "ownerUid",
+        "name",
+        "totalRent",
+        "members",
+        "expenses",
+        "chores",
+        "createdAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{uid}": {
+      "schema": {
+        "$ref": "#/entities/Profile"
+      },
+      "description": "Stores user lifestyle quiz profile and matching preferences"
+    },
+    "/listings/{listingId}": {
+      "schema": {
+        "$ref": "#/entities/Listing"
+      },
+      "description": "Stores user-published rental and shared living listings"
+    },
+    "/households/{householdId}": {
+      "schema": {
+        "$ref": "#/entities/Household"
+      },
+      "description": "Stores household rent split, shared expenses, and chore schedules"
+    }
+  }
+}

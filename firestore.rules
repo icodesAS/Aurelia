@@ -1,0 +1,101 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidProfile(data, uid) {
+      return data.keys().hasAll(['uid', 'displayName', 'occupation', 'city', 'budgetMin', 'budgetMax', 'intent', 'answers', 'createdAt'])
+        && data.keys().hasOnly(['uid', 'displayName', 'occupation', 'city', 'budgetMin', 'budgetMax', 'intent', 'answers', 'persona', 'numericTraits', 'createdAt'])
+        && data.uid is string && data.uid == uid && data.uid.size() <= 128
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 80
+        && data.occupation is string && data.occupation.size() >= 1 && data.occupation.size() <= 80
+        && data.city is string && data.city.size() >= 1 && data.city.size() <= 60
+        && data.budgetMin is number && data.budgetMin >= 0 && data.budgetMin <= 500000
+        && data.budgetMax is number && data.budgetMax >= 0 && data.budgetMax <= 500000
+        && data.intent is string && data.intent in ['find', 'host', 'both']
+        && data.answers is map
+        && data.createdAt is number;
+    }
+
+    function isValidListing(data) {
+      return data.keys().hasAll(['ownerId', 'ownerName', 'title', 'tagline', 'description', 'city', 'area', 'nearbyTags', 'roomType', 'bhk', 'furnished', 'askingRent', 'foodRule', 'vibe', 'suitableFor', 'amenities', 'tags', 'residentIds', 'gradientSeed', 'source', 'createdAt'])
+        && data.keys().hasOnly(['id', 'ownerId', 'ownerName', 'title', 'tagline', 'description', 'city', 'area', 'nearbyTags', 'roomType', 'bhk', 'furnished', 'askingRent', 'foodRule', 'vibe', 'suitableFor', 'amenities', 'tags', 'residentIds', 'coverImage', 'gradientSeed', 'source', 'createdAt'])
+        && data.ownerId is string && data.ownerId == request.auth.uid && data.ownerId.size() <= 128
+        && data.ownerName is string && data.ownerName.size() >= 1 && data.ownerName.size() <= 80
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 100
+        && data.tagline is string && data.tagline.size() <= 140
+        && data.description is string && data.description.size() <= 1200
+        && data.city is string && data.city.size() >= 1 && data.city.size() <= 60
+        && data.area is string && data.area.size() >= 1 && data.area.size() <= 100
+        && data.nearbyTags is list && data.nearbyTags.size() <= 10
+        && data.roomType is string && data.roomType in ['private_room', 'shared_room', 'entire_flat']
+        && data.bhk is number && data.bhk >= 1 && data.bhk <= 10
+        && data.furnished is bool
+        && data.askingRent is number && data.askingRent >= 500 && data.askingRent <= 500000
+        && data.foodRule is string && data.foodRule in ['veg_only', 'any']
+        && data.vibe is string && data.vibe in ['quiet', 'balanced', 'lively']
+        && data.suitableFor is string && data.suitableFor in ['any', 'women_only', 'men_only']
+        && data.amenities is list && data.amenities.size() <= 12
+        && data.tags is list && data.tags.size() <= 12
+        && data.residentIds is list && data.residentIds.size() <= 10
+        && (!('coverImage' in data) || (data.coverImage is string && data.coverImage.size() <= 450000))
+        && data.gradientSeed is number && data.gradientSeed >= 1 && data.gradientSeed <= 10
+        && data.source is string && data.source == 'user'
+        && data.createdAt is number;
+    }
+
+    function isValidHousehold(data) {
+      return data.keys().hasAll(['ownerUid', 'name', 'totalRent', 'members', 'expenses', 'chores', 'createdAt'])
+        && data.keys().hasOnly(['id', 'ownerUid', 'listingId', 'name', 'totalRent', 'members', 'expenses', 'chores', 'createdAt'])
+        && data.ownerUid is string && data.ownerUid == request.auth.uid && data.ownerUid.size() <= 128
+        && (!('listingId' in data) || (data.listingId is string && data.listingId.size() <= 128))
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 120
+        && data.totalRent is number && data.totalRent >= 0 && data.totalRent <= 1000000
+        && data.members is list && data.members.size() >= 1 && data.members.size() <= 10
+        && data.expenses is list && data.expenses.size() <= 100
+        && data.chores is list && data.chores.size() <= 50
+        && data.createdAt is number;
+    }
+
+    match /users/{uid} {
+      allow get: if isSignedIn() && isValidId(uid) && request.auth.uid == uid;
+      allow create: if isSignedIn() && isValidId(uid) && request.auth.uid == uid && isValidProfile(incoming(), uid);
+      allow update: if isSignedIn() && isValidId(uid) && request.auth.uid == uid && isValidProfile(incoming(), uid) && incoming().uid == existing().uid;
+      allow delete: if isSignedIn() && isValidId(uid) && request.auth.uid == uid;
+    }
+
+    match /listings/{listingId} {
+      allow get: if isValidId(listingId);
+      allow list: if resource.data.source == 'user';
+      allow create: if isSignedIn() && isValidId(listingId) && isValidListing(incoming());
+      allow update: if isSignedIn() && isValidId(listingId) && isValidListing(incoming()) && existing().ownerId == request.auth.uid && incoming().ownerId == existing().ownerId && incoming().createdAt == existing().createdAt;
+      allow delete: if isSignedIn() && isValidId(listingId) && existing().ownerId == request.auth.uid;
+    }
+
+    match /households/{householdId} {
+      allow get: if isSignedIn() && isValidId(householdId) && existing().ownerUid == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.ownerUid == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(householdId) && isValidHousehold(incoming());
+      allow update: if isSignedIn() && isValidId(householdId) && isValidHousehold(incoming()) && existing().ownerUid == request.auth.uid && incoming().ownerUid == existing().ownerUid && incoming().createdAt == existing().createdAt && incoming().diff(existing()).affectedKeys().hasOnly(['expenses', 'chores', 'totalRent', 'members', 'name']);
+      allow delete: if isSignedIn() && isValidId(householdId) && existing().ownerUid == request.auth.uid;
+    }
+  }
+}

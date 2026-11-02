@@ -1,0 +1,6 @@
+{
+  "name": "AURELIA",
+  "description": "Find your people. Find your place. A cinematic AI-powered rental and shared living platform.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
