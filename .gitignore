@@ -35,3 +35,9 @@ Thumbs.db
 
 # typescript
 *.tsbuildinfo
+
+# presentation (local only)
+Aurelia_Pitch_Deck.html
+public/presentation.html
+public/presentation_assets/
+
