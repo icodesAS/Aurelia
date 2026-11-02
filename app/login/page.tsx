@@ -26,11 +26,16 @@ export default function LoginPage() {
       }
     } catch (err) {
       setBusy(null);
-      setErrorMsg(
-        err instanceof Error && err.message.includes("popup-closed")
-          ? "Google sign-in popup was closed. You can try again or use Instant Demo Mode."
-          : "Google sign-in could not complete in this preview window. Use Instant Demo Mode for immediate access."
-      );
+      const errObj = err as { code?: string; message?: string };
+      console.error("Google sign-in error:", err);
+      if (errObj?.code === "auth/popup-closed-by-user") {
+        setErrorMsg("Google sign-in popup was closed before completion. You can try again or use Instant Demo Mode.");
+      } else if (errObj?.code === "auth/unauthorized-domain") {
+        const hostname = typeof window !== "undefined" ? window.location.hostname : "this domain";
+        setErrorMsg(`Domain "${hostname}" is not authorized in Firebase Console. Add it in Firebase Console > Authentication > Settings > Authorized Domains, or click Instant Demo Mode below.`);
+      } else {
+        setErrorMsg("Google sign-in could not complete in this preview window. Use Instant Demo Mode for immediate access.");
+      }
     }
   };
 

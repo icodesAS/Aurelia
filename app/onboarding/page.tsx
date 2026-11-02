@@ -100,7 +100,7 @@ export default function OnboardingPage() {
     }
 
     const chosenBudget = BUDGET_PRESETS[budgetPresetIdx] || BUDGET_PRESETS[3];
-    const finalName = displayName.trim() || "Aarav";
+    const finalName = displayName.trim() || (user?.displayName ?? "Guest Explorer");
 
     const newProfile: Profile = {
       uid: activeUid || "guest-demo-user",

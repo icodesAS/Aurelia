@@ -60,7 +60,7 @@ export default function HouseholdPage() {
     const members = [
       {
         id: activeUid,
-        name: profile?.displayName || "Aarav (You)",
+        name: profile?.displayName || "You",
         hue: 40,
         areaSqft: 150,
         attachedBath: true,

@@ -584,7 +584,7 @@ export const seedListings: Listing[] = [
 export function createDefaultGuestProfile(uid = "guest-demo-user"): Profile {
   return {
     uid,
-    displayName: "Aarav (Guest)",
+    displayName: "Guest User",
     occupation: "Design & Tech Fellow",
     city: "Rajpura",
     budgetMin: 8000,

@@ -28,10 +28,7 @@ export default function LandingPage() {
     return { user: u, match };
   });
 
-  const handleInstantDemo = async () => {
-    if (!user && !profile) {
-      await signInGuest(true);
-    }
+  const handleInstantDemo = () => {
     router.push("/people");
   };
 
